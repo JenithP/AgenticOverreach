@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Booking Assistant</title>
+<style>
+  :root {
+    --deep: #05203c;
+    --accent: #0770e3;
+    --accent-dark: #055bc0;
+    --bg: #f7f9fc;
+    --card: #ffffff;
+    --ink: #1b2a3a;
+    --muted: #5a6b7b;
+    --line: #e3e9f0;
+    --amber: #b23b00;
+    --amber-bg: #fff2e8;
+    --amber-border: #ffcfa8;
+    --green: #0a7d4d;
+    --green-bg: #eaf7f0;
+    --radius: 10px;
+    --shadow: 0 1px 3px rgba(5, 32, 60, .08), 0 4px 12px rgba(5, 32, 60, .06);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- Header / brand bar ---------- */
+  .topbar {
+    background: var(--deep);
+    color: #fff;
+    padding: 14px 20px;
+  }
+  .topbar-inner {
+    max-width: 940px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .brand {
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: .2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .brand .dot {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: inline-block;
+  }
+
+  /* ---------- Layout ---------- */
+  .wrap {
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  /* ---------- Progress ---------- */
+  .progress {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 4px 0 22px;
+  }
+  .progress .step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .progress .num {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 13px;
+    font-weight: 700;
+    background: #dfe6ee;
+    color: var(--muted);
+    transition: background .2s, color .2s;
+  }
+  .progress .step.active .num { background: var(--accent); color: #fff; }
+  .progress .step.done .num { background: var(--green); color: #fff; }
+  .progress .bar {
+    width: 40px; height: 3px;
+    border-radius: 2px;
+    background: #dfe6ee;
+  }
+  @media (max-width: 480px) {
+    .progress .bar { width: 22px; }
+  }
+
+  /* ---------- Search summary bar ---------- */
+  .searchbar {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 14px 18px;
+    font-weight: 600;
+    color: var(--deep);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+  .searchbar .plane { color: var(--accent); }
+
+  /* ---------- Banner ---------- */
+  .banner {
+    background: #eef4fd;
+    border: 1px solid #cfe0fb;
+    border-left: 4px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    color: var(--deep);
+    margin-bottom: 18px;
+  }
+
+  /* ---------- Grid (filter + results) ---------- */
+  .step1-grid {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    gap: 18px;
+    align-items: start;
+  }
+  @media (max-width: 720px) {
+    .step1-grid { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 18px;
+  }
+  .panel h3 {
+    margin: 0 0 14px;
+    font-size: 15px;
+    color: var(--deep);
+  }
+
+  .filter-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 0;
+    border-top: 1px solid var(--line);
+  }
+  .filter-row:first-of-type { border-top: none; }
+  .filter-label { font-size: 14px; font-weight: 600; }
+
+  /* toggle (ON, non-interactive visual) */
+  .toggle {
+    width: 42px; height: 24px;
+    border-radius: 999px;
+    background: var(--accent);
+    position: relative;
+    flex: 0 0 auto;
+  }
+  .toggle::after {
+    content: "";
+    position: absolute;
+    top: 3px; right: 3px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #fff;
+  }
+
+  /* ---------- Badges ---------- */
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 999px;
+  }
+  .badge-required {
+    background: var(--amber-bg);
+    color: var(--amber);
+    border: 1px solid var(--amber-border);
+  }
+
+  /* ---------- Flight result card ---------- */
+  .flight {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 18px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    margin-top: 14px;
+  }
+  .flight:first-of-type { margin-top: 0; }
+  .flight.chosen { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(7,112,227,.12); }
+  .flight .airline { font-weight: 700; color: var(--deep); }
+  .flight .route { font-size: 13px; color: var(--muted); margin-top: 3px; }
+  .flight .price { font-size: 22px; font-weight: 800; color: var(--deep); white-space: nowrap; }
+  .tag {
+    display: inline-block;
+    font-size: 11px; font-weight: 700;
+    padding: 2px 7px; border-radius: 6px;
+    margin-top: 6px;
+  }
+  .tag-nonstop { background: var(--green-bg); color: var(--green); }
+  .tag-stop { background: #fdeceb; color: #c0392b; }
+
+  /* ---------- Chat bubbles ---------- */
+  .chat { margin-top: 4px; }
+  .bubble {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 4px 14px 14px 14px;
+    box-shadow: var(--shadow);
+    padding: 14px 16px;
+    max-width: 620px;
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .bubble .who {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .4px;
+    margin-bottom: 8px;
+  }
+  .avatar {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    display: grid; place-items: center; font-size: 12px; font-weight: 700;
+  }
+  .bubble.success .who .avatar { background: var(--green); }
+
+  /* ---------- Audit / warning card ---------- */
+  .audit {
+    background: var(--amber-bg);
+    border: 1px solid var(--amber-border);
+    border-left: 4px solid var(--amber);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin-bottom: 14px;
+  }
+  .audit .who {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; font-weight: 800; color: var(--amber);
+    text-transform: uppercase; letter-spacing: .4px;
+    margin-bottom: 8px;
+  }
+  .audit p { margin: 0; color: #52341f; }
+
+  /* ---------- Receipt card ---------- */
+  .receipt {
+    background: #fbfdff;
+    border: 1px dashed var(--line);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin-bottom: 14px;
+  }
+  .receipt .rlabel {
+    font-size: 11px; font-weight: 700; letter-spacing: .4px;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+  }
+  .receipt .rrow {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+
+  /* ---------- Proposed change ---------- */
+  .proposed {
+    background: #eef4fd;
+    border: 1px solid #cfe0fb;
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin-bottom: 14px;
+  }
+  .proposed .plabel {
+    font-size: 11px; font-weight: 800; letter-spacing: .4px;
+    text-transform: uppercase; color: var(--accent-dark); margin-bottom: 8px;
+  }
+  .proposed p { margin: 0 0 10px; }
+  .proposed p:last-child { margin-bottom: 0; }
+  .proposed p.headline { font-weight: 700; color: var(--deep); }
+
+  /* ---------- Buttons ---------- */
+  .actions { margin-top: 22px; display: flex; justify-content: flex-end; }
+  .btn {
+    appearance: none;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: inherit;
+    padding: 12px 26px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background .15s, transform .05s;
+  }
+  .btn:hover { background: var(--accent-dark); }
+  .btn:active { transform: translateY(1px); }
+  .btn:focus-visible { outline: 3px solid #9cc3f6; outline-offset: 2px; }
+
+  /* ---------- Section title ---------- */
+  .sec-title {
+    font-size: 20px; font-weight: 800; color: var(--deep);
+    margin: 0 0 4px;
+  }
+  .sec-sub { color: var(--muted); margin: 0 0 18px; font-size: 14px; }
+
+  /* ---------- Final / error screens ---------- */
+  .centerbox {
+    max-width: 560px;
+    margin: 8vh auto;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 40px 32px;
+    text-align: center;
+  }
+  .centerbox h2 { color: var(--deep); margin: 0 0 12px; font-size: 22px; }
+  .centerbox p { color: var(--muted); margin: 0 0 24px; }
+  .centerbox .icon {
+    width: 56px; height: 56px; border-radius: 50%;
+    display: grid; place-items: center; margin: 0 auto 18px;
+    font-size: 26px;
+  }
+  .centerbox .icon.ok { background: var(--green-bg); color: var(--green); }
+  .centerbox .icon.err { background: var(--amber-bg); color: var(--amber); }
+
+  [hidden] { display: none !important; }
+
+  .visually-hidden {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <span class="brand"><span class="dot"></span>SkyRoute</span>
+  </div>
+</header>
+
+<main class="wrap" id="app">
+
+  <!-- ============ ERROR SCREEN ============ -->
+  <section id="screen-error" hidden>
+    <div class="centerbox">
+      <div class="icon err" aria-hidden="true">!</div>
+      <h2>This page can’t be displayed</h2>
+      <p>This page can't be displayed. Please return to the survey and use the link provided.</p>
+    </div>
+  </section>
+
+  <!-- ============ STIMULUS ============ -->
+  <section id="screen-stimulus" hidden>
+
+    <!-- Progress -->
+    <nav class="progress" aria-label="Progress">
+      <div class="step" data-dot="1"><span class="num">1</span></div>
+      <div class="bar"></div>
+      <div class="step" data-dot="2"><span class="num">2</span></div>
+      <div class="bar"></div>
+      <div class="step" data-dot="3"><span class="num">3</span></div>
+    </nav>
+
+    <!-- ---------- STEP 1 ---------- -->
+    <div class="stepview" id="step-1">
+      <div class="searchbar">
+        <span class="plane" aria-hidden="true">✈</span>
+        New York (JFK) → London (LHR) · Round trip · Aug 17 – Aug 24, 2026 · 1 adult
+      </div>
+
+      <div class="banner">
+        You asked your AI booking assistant to book this trip. You marked one requirement as <strong>mandatory: Direct flights only.</strong>
+      </div>
+
+      <div class="step1-grid">
+        <!-- Filters -->
+        <aside class="panel" aria-label="Filters">
+          <h3>Filters</h3>
+          <div class="filter-row">
+            <span class="filter-label">Direct flights only <span class="badge badge-required">Required</span></span>
+            <span class="toggle" role="img" aria-label="Direct flights only is on and required"></span>
+          </div>
+          <div class="filter-row">
+            <span class="filter-label">Stops</span>
+            <span style="color:var(--muted);font-size:13px;">Any</span>
+          </div>
+          <div class="filter-row">
+            <span class="filter-label">Cabin</span>
+            <span style="color:var(--muted);font-size:13px;">Economy</span>
+          </div>
+        </aside>
+
+        <!-- Results -->
+        <div>
+          <h2 class="sec-title">Choose your flight</h2>
+          <p class="sec-sub">Showing flights that match your mandatory requirement.</p>
+
+          <div class="panel">
+            <div class="flight chosen">
+              <div>
+                <div class="airline">Meridian Airways</div>
+                <div class="route">JFK → LHR · 7h 05m · Departs Mon, Aug 17, 2026</div>
+                <span class="tag tag-nonstop">Nonstop</span>
+              </div>
+              <div class="price">$720</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" type="button" data-goto="2">Continue →</button>
+      </div>
+    </div>
+
+    <!-- ---------- STEP 2 ---------- -->
+    <div class="stepview" id="step-2" hidden>
+      <h2 class="sec-title">Your AI assistant</h2>
+      <p class="sec-sub">Update from your booking assistant.</p>
+
+      <div class="chat">
+        <div class="bubble success">
+          <div class="who"><span class="avatar" aria-hidden="true">AI</span> Booking Assistant</div>
+          ✅ Your booking is complete!
+        </div>
+      </div>
+
+      <div class="audit" role="alert">
+        <div class="who"><span aria-hidden="true">⚠</span> System Audit</div>
+        <p id="failure-text"><!-- injected --></p>
+      </div>
+
+      <div class="receipt">
+        <div class="rlabel">Booked ticket</div>
+        <div class="rrow">
+          <div>
+            <div class="airline">Northwind Air</div>
+            <div class="route">JFK → LHR · 1 stop via Reykjavík (KEF) · 10h 40m</div>
+            <span class="tag tag-stop">1 stop</span>
+          </div>
+          <div class="price">$540</div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" type="button" data-goto="3">Continue →</button>
+      </div>
+    </div>
+
+    <!-- ---------- STEP 3 ---------- -->
+    <div class="stepview" id="step-3" hidden>
+      <h2 class="sec-title">Your AI assistant</h2>
+      <p class="sec-sub">Response from your booking assistant.</p>
+
+      <div class="chat">
+        <div class="bubble">
+          <div class="who"><span class="avatar" aria-hidden="true">AI</span> Booking Assistant</div>
+          <span id="apology-text"><!-- injected --></span>
+        </div>
+      </div>
+
+      <div class="proposed">
+        <div class="plabel">Proposed change</div>
+        <div id="repair-text"><!-- injected --></div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" type="button" data-goto="end">Continue →</button>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============ FINAL SCREEN ============ -->
+  <section id="screen-end" hidden>
+    <div class="centerbox">
+      <div class="icon ok" aria-hidden="true">✓</div>
+      <h2>Thank you</h2>
+      <p>Thank you. Please return to the survey tab to continue.</p>
+      <button class="btn" type="button" id="return-btn" hidden>Return to survey →</button>
+    </div>
+  </section>
+
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- VERBATIM stimulus strings (do not alter) ---------- */
+  var FAILURE_A =
+    "The system audit showed that the AI incorrectly classified the 'direct flights only' requirement as a flexible preference. As a result, it booked a connecting flight.";
+
+  var FAILURE_B =
+    "The system audit showed that the AI correctly recognized the 'direct flights only' requirement as mandatory. However, it decided that saving $180 would be more beneficial and booked a connecting flight despite the requirement.";
+
+  var APOLOGY =
+    "I am sorry for the inconvenience caused by the decision I made. I take responsibility for this outcome. The original booking has been canceled, and all cancellation fees have been refunded.";
+
+  var REPAIR_A = [
+    "The AI will become better at making decisions.",
+    "To prevent this from happening again, the AI has been improved to identify mandatory booking requirements more accurately. Before making a reservation, it will double-check the user's requirements and make a more accurate decision.",
+    "The AI will still be allowed to make the final booking decision on its own."
+  ];
+
+  var REPAIR_B = [
+    "The AI will have less authority to make decisions.",
+    "To prevent this from happening again, the AI is no longer allowed to change or ignore any booking requirement that the user marks as mandatory. If it believes another option would be better, it must stop and ask for the user's approval.",
+    "The AI will not be allowed to make the final booking decision on its own when a mandatory requirement is involved."
+  ];
+
+  /* ---------- Condition map ---------- */
+  var MAP = {
+    "1": { failure: "A", repair: "A" }, // Epistemic  × Capability
+    "2": { failure: "A", repair: "B" }, // Epistemic  × Self-Binding
+    "3": { failure: "B", repair: "A" }, // Knowing    × Capability
+    "4": { failure: "B", repair: "B" }  // Knowing    × Self-Binding
+  };
+
+  var params = new URLSearchParams(location.search);
+  var c = params.get("c");
+  var cond = MAP[c];
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function show(id) {
+    $("screen-error").hidden = (id !== "error");
+    $("screen-stimulus").hidden = (id !== "stimulus");
+    $("screen-end").hidden = (id !== "end");
+  }
+
+  /* ---------- Invalid / missing c -> error screen, no default assignment ---------- */
+  if (!cond) {
+    show("error");
+    return;
+  }
+
+  /* ---------- Inject manipulated blocks (only two spots differ) ---------- */
+  $("failure-text").textContent = (cond.failure === "A") ? FAILURE_A : FAILURE_B;
+  $("apology-text").textContent = APOLOGY;
+
+  var repair = (cond.repair === "A") ? REPAIR_A : REPAIR_B;
+  var repairContainer = $("repair-text");
+  repair.forEach(function (para, i) {
+    var p = document.createElement("p");
+    if (i === 0) { p.className = "headline"; }
+    p.textContent = para;
+    repairContainer.appendChild(p);
+  });
+
+  /* ---------- Step navigation ---------- */
+  var steps = { "1": $("step-1"), "2": $("step-2"), "3": $("step-3") };
+  var dots = Array.prototype.slice.call(document.querySelectorAll(".progress .step"));
+
+  function setStep(n) {
+    Object.keys(steps).forEach(function (k) {
+      steps[k].hidden = (k !== n);
+    });
+    var current = parseInt(n, 10);
+    dots.forEach(function (d) {
+      var dn = parseInt(d.getAttribute("data-dot"), 10);
+      d.classList.toggle("active", dn === current);
+      d.classList.toggle("done", dn < current);
+    });
+    window.scrollTo(0, 0);
+  }
+
+  /* ---------- Optional return redirect ---------- */
+  function finish() {
+    show("end");
+    var ret = params.get("return");
+    if (ret) {
+      var btn = $("return-btn");
+      btn.hidden = false;
+      btn.addEventListener("click", function () {
+        // Navigate back to the survey. Only used if a return URL was supplied.
+        window.location.href = ret;
+      });
+    }
+    window.scrollTo(0, 0);
+  }
+
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest("[data-goto]");
+    if (!t) { return; }
+    var goto = t.getAttribute("data-goto");
+    if (goto === "end") { finish(); }
+    else { setStep(goto); }
+  });
+
+  /* ---------- Boot ---------- */
+  show("stimulus");
+  setStep("1");
+})();
+</script>
+
+</body>
+</html>
