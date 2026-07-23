@@ -301,6 +301,53 @@
   .proposed p:last-child { margin-bottom: 0; }
   .proposed p.headline { font-weight: 700; color: var(--deep); }
 
+  /* ---------- Agent working sequence ---------- */
+  .working-card {
+    max-width: 620px;
+    animation: fadeIn .25s ease both;
+  }
+  .working-head {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 700; color: var(--deep);
+    margin-bottom: 16px;
+  }
+  .working-head .avatar { width: 26px; height: 26px; }
+  .worklist { list-style: none; margin: 0; padding: 0; }
+  .worklist li {
+    display: flex; align-items: center; gap: 12px;
+    padding: 9px 0;
+    color: var(--muted);
+    font-size: 15px;
+    transition: color .2s;
+  }
+  .worklist li.done { color: var(--ink); }
+  .worklist li.active { color: var(--deep); font-weight: 600; }
+  .wmark {
+    flex: 0 0 auto;
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid #cdd7e2;
+    display: grid; place-items: center;
+    box-sizing: border-box;
+  }
+  .worklist li.done .wmark {
+    border-color: var(--green);
+    background: var(--green);
+  }
+  .worklist li.done .wmark::after {
+    content: "✓"; color: #fff; font-size: 12px; font-weight: 800; line-height: 1;
+  }
+  .worklist li.active .wmark {
+    border-color: var(--accent);
+    border-top-color: transparent;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .working-card { animation: none; }
+    .worklist li.active .wmark { animation: none; }
+  }
+
   /* ---------- Buttons ---------- */
   .actions { margin-top: 22px; display: flex; justify-content: flex-end; }
   .btn {
@@ -436,7 +483,26 @@
       </div>
 
       <div class="actions">
-        <button class="btn" type="button" data-goto="2">Continue →</button>
+        <button class="btn" type="button" data-goto="working">Continue →</button>
+      </div>
+    </div>
+
+    <!-- ---------- AGENT WORKING (autonomous execution; identical across all conditions) ---------- -->
+    <div class="stepview" id="step-working" hidden>
+      <h2 class="sec-title">Your AI assistant</h2>
+      <p class="sec-sub">Your assistant is completing the booking on your behalf.</p>
+
+      <div class="panel working-card" role="status" aria-live="polite">
+        <div class="working-head">
+          <span class="avatar" aria-hidden="true">AI</span>
+          <span>AI Booking Assistant is working…</span>
+        </div>
+        <ul class="worklist">
+          <li class="pending"><span class="wmark" aria-hidden="true"></span>Searching flights (JFK → LHR)</li>
+          <li class="pending"><span class="wmark" aria-hidden="true"></span>Comparing 12 options</li>
+          <li class="pending"><span class="wmark" aria-hidden="true"></span>Applying your requirements</li>
+          <li class="pending"><span class="wmark" aria-hidden="true"></span>Booking your ticket</li>
+        </ul>
       </div>
     </div>
 
@@ -579,17 +645,54 @@
   var steps = { "1": $("step-1"), "2": $("step-2"), "3": $("step-3") };
   var dots = Array.prototype.slice.call(document.querySelectorAll(".progress .step"));
 
-  function setStep(n) {
-    Object.keys(steps).forEach(function (k) {
-      steps[k].hidden = (k !== n);
-    });
-    var current = parseInt(n, 10);
+  var workingView = $("step-working");
+
+  function setDots(current) {
     dots.forEach(function (d) {
       var dn = parseInt(d.getAttribute("data-dot"), 10);
       d.classList.toggle("active", dn === current);
       d.classList.toggle("done", dn < current);
     });
+  }
+
+  function setStep(n) {
+    workingView.hidden = true;
+    Object.keys(steps).forEach(function (k) {
+      steps[k].hidden = (k !== n);
+    });
+    setDots(parseInt(n, 10));
     window.scrollTo(0, 0);
+  }
+
+  // Autonomous-execution animation. Identical for all four conditions; no
+  // measurement, no storage, no network — purely a timed visual (setTimeout).
+  function playWorking() {
+    Object.keys(steps).forEach(function (k) { steps[k].hidden = true; });
+    workingView.hidden = false;
+    setDots(2); // heading toward Step 2 (booking result)
+    window.scrollTo(0, 0);
+
+    var items = Array.prototype.slice.call(workingView.querySelectorAll(".worklist li"));
+    items.forEach(function (li) { li.className = "pending"; });
+
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) {
+      items.forEach(function (li) { li.className = "done"; });
+      setTimeout(function () { setStep("2"); }, 350);
+      return;
+    }
+
+    var i = 0;
+    (function tick() {
+      if (i > 0) { items[i - 1].className = "done"; }
+      if (i < items.length) {
+        items[i].className = "active";
+        i++;
+        setTimeout(tick, 620);
+      } else {
+        setTimeout(function () { setStep("2"); }, 520);
+      }
+    })();
   }
 
   /* ---------- Optional return redirect ---------- */
@@ -612,6 +715,7 @@
     if (!t) { return; }
     var goto = t.getAttribute("data-goto");
     if (goto === "end") { finish(); }
+    else if (goto === "working") { playWorking(); }
     else { setStep(goto); }
   });
 
